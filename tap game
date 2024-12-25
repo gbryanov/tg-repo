@@ -1,0 +1,79 @@
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+import logging
+
+# Set up logging to see if any issues occur
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Dictionary to store users' in-game data (you could replace this with a database)
+user_data = {}
+
+# Game settings
+base_income = 1
+upgrade_cost = 10
+income_multiplier = 2
+
+# Command to start the game
+def start(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if user_id not in user_data:
+        user_data[user_id] = {"coins": 0, "multiplier": 1}
+        update.message.reply_text("Welcome to the Economic Clicker Game! Type /click to start earning coins.")
+    else:
+        update.message.reply_text("You are already playing the game! Type /click to start earning coins.")
+
+# Command to click (earn coins)
+def click(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if user_id not in user_data:
+        update.message.reply_text("Please type /start to begin the game!")
+        return
+
+    # Calculate the coins earned based on the current multiplier
+    earned_coins = base_income * user_data[user_id]["multiplier"]
+    user_data[user_id]["coins"] += earned_coins
+    update.message.reply_text(f"Clicked! You earned {earned_coins} coins. You now have {user_data[user_id]['coins']} coins.")
+
+# Command to check user's progress
+def status(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if user_id not in user_data:
+        update.message.reply_text("Please type /start to begin the game!")
+        return
+    
+    coins = user_data[user_id]["coins"]
+    multiplier = user_data[user_id]["multiplier"]
+    update.message.reply_text(f"You have {coins} coins and your current income multiplier is {multiplier}.")
+
+# Command to buy an upgrade
+def upgrade(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if user_id not in user_data:
+        update.message.reply_text("Please type /start to begin the game!")
+        return
+
+    # Check if the player has enough coins for an upgrade
+    if user_data[user_id]["coins"] >= upgrade_cost:
+        user_data[user_id]["coins"] -= upgrade_cost
+        user_data[user_id]["multiplier"] *= income_multiplier
+        update.message.reply_text(f"Upgrade successful! Your multiplier is now {user_data[user_id]['multiplier']} and you have {user_data[user_id]['coins']} coins left.")
+    else:
+        update.message.reply_text(f"You need {upgrade_cost} coins to upgrade! You have {user_data[user_id]['coins']} coins.")
+
+# Command to reset the game
+def reset(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if user_id not in user_data:
+        update.message.reply_text("Please type /start to begin the game!")
+        return
+    
+    user_data[user_id] = {"coins": 0, "multiplier": 1}
+    update.message.reply_text("Game reset! You have 0 coins and your multiplier is back to 1.")
+
+# Command to help user with the game commands
+def help_command(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text(
+        "/start - Start a new game\n"
+        "/click - Earn coins\n"
+        "
